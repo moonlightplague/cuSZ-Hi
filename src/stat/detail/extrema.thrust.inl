@@ -17,6 +17,9 @@
 #include "stat/compare/compare.thrust.hh"
 // #include <thrust/device_vector.h>
 #include <thrust/execution_policy.h>
+#include <thrust/extrema.h>
+#include <thrust/functional.h>
+#include <thrust/reduce.h>
 
 namespace psz {
 namespace thrustgpu {

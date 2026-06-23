@@ -62,6 +62,7 @@ static const int TPB = 512;  // threads per block [must be power of 2 and at lea
 #include "lc/components/d_TCMS_1.h"
 #include "lc/components/d_BIT_1.h"
 #include "lc/components/d_RRE_1.h"
+#include "lc/components/d_ZBPC_1.h"
 #include "lc/lc.h"
 
 // copy (len) bytes from shared memory (source) to global memory (destination)
@@ -109,6 +110,9 @@ static inline __device__ void s2g(void* const __restrict__ destination, const vo
 
 
 static __device__ int g_chunk_counter;
+
+static constexpr unsigned short ZBPC_FLAG = 0x8000;
+static constexpr unsigned short ZBPC_SIZE_MASK = 0x7fff;
 
 
 static __global__ void d_reset()
@@ -209,6 +213,7 @@ void d_encode_tcms(const byte* const __restrict__ input, const int insize, byte*
     __syncthreads();  // chunk produced, chunk[last] consumed
     int csize = osize;
     bool good = true;
+    bool use_zbpc = false;
     if (good) {
       byte* tmp = in; in = out; out = tmp;
       good = d_TCMS_1(csize, in, out, temp);
@@ -224,13 +229,33 @@ void d_encode_tcms(const byte* const __restrict__ input, const int insize, byte*
       good = d_RRE_1(csize, in, out, temp);
      __syncthreads();
     }
+    if (good) {
+      const int prev_csize = csize;
+      byte* tmp = in; in = out; out = tmp;
+      good = d_ZBPC_1(csize, in, out, temp);
+     __syncthreads();
+      if (!good || csize >= prev_csize) {
+        tmp = in; in = out; out = tmp;
+        csize = prev_csize;
+        good = true;
+      }
+      else {
+        use_zbpc = true;
+      }
+    }
 
     // handle carry
-    if (!good || (csize >= osize)) csize = osize;
+    if (!good || (csize >= osize)) {
+      csize = osize;
+      use_zbpc = false;
+    }
     propagate_carry(csize, chunkID, fullcarry, (int*)temp);
 
     // reload chunk if incompressible
-    if (tid == 0) size_out[chunkID] = csize;
+    if (tid == 0) {
+      size_out[chunkID] =
+          (csize & ZBPC_SIZE_MASK) | (use_zbpc ? ZBPC_FLAG : 0);
+    }
     if (csize == osize) {
       // store original data
       long long* const out_l = (long long*)out;

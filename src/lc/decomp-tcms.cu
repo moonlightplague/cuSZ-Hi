@@ -61,6 +61,7 @@ static const int TPB = 512;  // threads per block [must be power of 2 and at lea
 #include "lc/components/d_TCMS_1.h"
 #include "lc/components/d_BIT_1.h"
 #include "lc/components/d_RRE_1.h"
+#include "lc/components/d_ZBPC_1.h"
 #include "lc/lc.h"
 
 
@@ -120,6 +121,9 @@ static inline __device__ void g2s(void* const __restrict__ destination, const vo
 
 static __device__ int g_chunk_counter;
 
+static constexpr unsigned short ZBPC_FLAG = 0x8000;
+static constexpr unsigned short ZBPC_SIZE_MASK = 0x7fff;
+
 
 static __global__ void d_reset()
 {
@@ -164,9 +168,11 @@ void d_decode_tcms(const byte* const __restrict__ input, byte* const __restrict_
     // compute sum of all prior csizes (start where left off in previous iteration)
     int sum = 0;
     for (int i = prevChunkID + tid; i < chunkID; i += TPB) {
-      sum += (int)size_in[i];
+      sum += (int)(size_in[i] & ZBPC_SIZE_MASK);
     }
-    int csize = (int)size_in[chunkID];
+    const unsigned short packed_csize = size_in[chunkID];
+    const bool use_zbpc = (packed_csize & ZBPC_FLAG) != 0;
+    int csize = (int)(packed_csize & ZBPC_SIZE_MASK);
     const int offs = prevOffset + block_sum_reduction(sum, (int*)&chunk[last + 1]);
     prevChunkID = chunkID;
     prevOffset = offs;
@@ -185,6 +191,11 @@ void d_decode_tcms(const byte* const __restrict__ input, byte* const __restrict_
     const int osize = min(CS, outsize - base);
     if (csize < osize) {
       byte* tmp;
+      if (use_zbpc) {
+        tmp = in; in = out; out = tmp;
+        d_iZBPC_1(csize, in, out,temp);
+        __syncthreads();
+      }
      tmp = in; in = out; out = tmp;
       d_iRRE_1(csize, in, out,temp);
       __syncthreads();

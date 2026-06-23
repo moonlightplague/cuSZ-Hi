@@ -18,6 +18,9 @@
 // #include <thrust/iterator/constant_iterator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/execution_policy.h>
+#include <thrust/functional.h>
+#include <thrust/iterator/zip_iterator.h>
+#include <thrust/transform_reduce.h>
 #include <thrust/tuple.h>
 
 #include "cusz/type.h"
