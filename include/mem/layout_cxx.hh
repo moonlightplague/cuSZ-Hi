@@ -77,7 +77,16 @@ TPL POOL::pszmempool_cxx(u4 x, int _radius, u4 y, u4 z)
   //constexpr auto ERR_HISTO_LEN = 6;
   constexpr auto ERR_HISTO_LEN = 36;
 
-  _compressed = new pszmem_cxx<B>(len * 1.2, 1, 1, "compressed");
+  const auto compact_reserved_len = len;
+  const auto sparse_max_bytes = compact_reserved_len * (sizeof(T) + sizeof(M));
+  const auto anchor_max_bytes =
+      sizeof(T) * div(x, BLK) * div(y, BLK) * div(z, BLK);
+  const auto lossless_max_bytes = len * sizeof(H);
+  const auto compressed_workspace_bytes =
+      lossless_max_bytes + anchor_max_bytes + sparse_max_bytes + 4096;
+
+  _compressed =
+      new pszmem_cxx<B>(compressed_workspace_bytes, 1, 1, "compressed");
 
   od = new pszmem_cxx<T>(x, y, z, "original data");
   xd = new pszmem_cxx<T>(x, y, z, "reconstructed data");
@@ -98,7 +107,7 @@ TPL POOL::pszmempool_cxx(u4 x, int _radius, u4 y, u4 z)
   ht->control({Malloc, MallocHost});
 
   // [psz::TODO] consider compact as a view with exposing the limited length
-  compact->reserve_space(len / 5).control({Malloc, MallocHost});
+  compact->reserve_space(compact_reserved_len).control({Malloc, MallocHost});
 }
 /*
 void POOL::pesync_h2d(){

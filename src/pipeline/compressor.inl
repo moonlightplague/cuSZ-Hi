@@ -14,6 +14,7 @@
 #ifndef A2519F0E_602B_4798_A8EF_9641123095D9
 #define A2519F0E_602B_4798_A8EF_9641123095D9
 
+#include <sstream>
 #include <stdexcept>
 
 #include "busyheader.hh"
@@ -296,6 +297,19 @@ try
   for (auto i = 1; i < Header::END + 1; i++)
     header.entry[i] += header.entry[i - 1];
 
+  auto require_compressed_capacity = [&](size_t required, const char* stage) {
+    const auto capacity = mem->_compressed->bytes();
+    if (required > capacity) {
+      std::ostringstream ss;
+      ss << "[psz::error] compressed workspace too small during " << stage
+         << ": need " << required << " bytes, capacity " << capacity
+         << " bytes.";
+      throw std::runtime_error(ss.str());
+    }
+  };
+
+  require_compressed_capacity(header.entry[Header::END], "merge staging");
+
   // copy anchor
   if (pred_type == Spline) concat_d2d(Header::ANCHOR, mem->anchor(), 0);
   if (ctx->use_huffman) {
@@ -325,12 +339,14 @@ try
 
   if (ctx->use_huffman) {
     RTR_COMPRESS((uint8_t*)dst(Header::VLE), nbyte[Header::VLE]+nbyte[Header::ANCHOR]+nbyte[Header::SPFMT], &comp_rtr_out, &comp_rtr_outlen, &time_rtr, stream);
+    require_compressed_capacity(header.entry[Header::VLE] + comp_rtr_outlen, "RTR output");
     CHECK_GPU(GpuMemcpyAsync(dst(Header::VLE), comp_rtr_out, comp_rtr_outlen, GpuMemcpyD2D, (GpuStreamT)stream));
     CHECK_GPU(GpuStreamSync(stream));
     header.entry[Header::END+1] = header.entry[Header::VLE] + comp_rtr_outlen;
   }
   else{
     BITR_COMPRESS((uint8_t*)dst(Header::ANCHOR), nbyte[Header::ANCHOR]+nbyte[Header::SPFMT], &comp_bitr_out, &comp_bitr_outlen, &time_bitr, stream);
+    require_compressed_capacity(header.entry[Header::ANCHOR] + comp_bitr_outlen, "BITR output");
     CHECK_GPU(GpuMemcpyAsync(dst(Header::ANCHOR), comp_bitr_out, comp_bitr_outlen, GpuMemcpyD2D, (GpuStreamT)stream));
     CHECK_GPU(GpuStreamSync(stream));
     header.entry[Header::END+1] = header.entry[Header::ANCHOR] + comp_bitr_outlen;
