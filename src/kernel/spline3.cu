@@ -505,6 +505,26 @@ int spline_construct(
     */
       //printf("\nA B: %.2f %.2f\n",intp_param.alpha,intp_param.beta);
   }
+
+#if defined(PSZ_USE_CUDA)
+  cudaFuncAttributes timed_kernel_attr{};
+  if (l3.z == 1) {
+    CHECK_GPU(cudaFuncGetAttributes(
+        &timed_kernel_attr,
+        (const void*)cusz::c_spline_infprecis_data<
+            T*, E*, float, LEVEL, SPLINE_DIM_2, AnchorBlockSizeX,
+            AnchorBlockSizeY, AnchorBlockSizeZ, numAnchorBlockX,
+            numAnchorBlockY, numAnchorBlockZ, DEFAULT_BLOCK_SIZE>));
+  }
+  else {
+    CHECK_GPU(cudaFuncGetAttributes(
+        &timed_kernel_attr,
+        (const void*)cusz::c_spline_infprecis_data<
+            T*, E*, float, 4, SPLINE_DIM_3, BLOCK16, BLOCK16, BLOCK16,
+            1, 1, 1, DEFAULT_BLOCK_SIZE>));
+  }
+#endif
+
   CREATE_GPUEVENT_PAIR;
   START_GPUEVENT_RECORDING(stream);
 
@@ -560,6 +580,25 @@ int spline_reconstruct(
   auto eb_r = 1 / eb;
 
   auto l3 = xdata->template len3<dim3>();
+
+#if defined(PSZ_USE_CUDA)
+  cudaFuncAttributes timed_kernel_attr{};
+  if (l3.z == 1) {
+    CHECK_GPU(cudaFuncGetAttributes(
+        &timed_kernel_attr,
+        (const void*)cusz::x_spline_infprecis_data<
+            E*, T*, FP, LEVEL, SPLINE_DIM_2, AnchorBlockSizeX,
+            AnchorBlockSizeY, AnchorBlockSizeZ, numAnchorBlockX,
+            numAnchorBlockY, numAnchorBlockZ, DEFAULT_BLOCK_SIZE>));
+  }
+  else {
+    CHECK_GPU(cudaFuncGetAttributes(
+        &timed_kernel_attr,
+        (const void*)cusz::x_spline_infprecis_data<
+            E*, T*, FP, 4, SPLINE_DIM_3, BLOCK16, BLOCK16, BLOCK16,
+            1, 1, 1, DEFAULT_BLOCK_SIZE>));
+  }
+#endif
 
   CREATE_GPUEVENT_PAIR;
   START_GPUEVENT_RECORDING(stream);

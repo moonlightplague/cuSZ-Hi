@@ -117,8 +117,7 @@ __global__ void c_spline_infprecis_data(
     FP      eb_r,
     FP      ebx2,
     int     radius,
-    INTERPOLATION_PARAMS intp_param,
-    TITER errors);
+    INTERPOLATION_PARAMS intp_param);
 
 template <
     typename EITER,
@@ -142,6 +141,7 @@ __global__ void x_spline_infprecis_data(
     TITER   data,         // output
     DIM3    data_size,    //
     STRIDE3 data_leap,    //
+    TITER   outlier_tmp,
     FP      eb_r,
     FP      ebx2,
     int     radius,
