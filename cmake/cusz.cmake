@@ -146,7 +146,7 @@ target_link_libraries(cusz PUBLIC pszcomp_cu pszhf_cu pszspv_cu pszstat_seq
                                   pszutils_seq pszmem lc)
 
 
-add_executable(cusz-bin src/cli_psz.cc)
+add_executable(cusz-bin src/cli_psz.cc src/bottleneck_test.cu)
 target_link_libraries(cusz-bin PRIVATE cusz)
 set_target_properties(cusz-bin PROPERTIES OUTPUT_NAME cuszhi)
 

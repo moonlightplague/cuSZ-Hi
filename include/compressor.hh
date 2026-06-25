@@ -118,6 +118,7 @@ class Compressor {
   Compressor* export_header(pszheader&);
   Compressor* export_header(pszheader*);
   Compressor* export_timerecord(TimeRecord*);
+  float predictor_time_ms() const { return time_pred; }
 };
 
 }  // namespace cusz

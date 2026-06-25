@@ -48,6 +48,7 @@ static const char psz_short_doc[] =
     "  z : zip/compress\n"
     "  x : unzip/decompress\n"
     "  r : dryrun\n"
+    "  --bottleneck-test : predictor-only memory/core bottleneck probe\n"
     "  h : print full-length help document (not up-to-date)\n"
     "\n"
     "  i file  : path to input datum\n"

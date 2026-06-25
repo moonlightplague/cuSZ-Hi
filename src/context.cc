@@ -345,6 +345,13 @@ void pszctx_parse_argv(pszctx* ctx, int const argc, char** const argv)
       else if (optmatch({"-r", "--dryrun"})) {
         ctx->task_dryrun = true;
       }
+      else if (optmatch({"--bottleneck-test"})) {
+        ctx->task_bottleneck_test = true;
+      }
+      else if (optmatch({"--bottleneck-repeats"})) {
+        check_next();
+        ctx->bottleneck_repeats = std::stoi(argv[++i]);
+      }
       else if (optmatch({"-P", "--pre", "--preprocess"})) {
         check_next();
         std::string pre(argv[++i]);
@@ -532,19 +539,21 @@ void pszctx_validate(pszctx* ctx)
   }
 
   if (ctx->data_len == 1 and not ctx->use_demodata) {
-    if (ctx->task_construct or ctx->task_dryrun) {
+    if (ctx->task_construct or ctx->task_dryrun or ctx->task_bottleneck_test) {
       cerr << LOG_ERR << "wrong input size" << endl;
       to_abort = true;
     }
   }
   if (not ctx->task_construct and not ctx->task_reconstruct and
-      not ctx->task_dryrun) {
-    cerr << LOG_ERR << "select compress (-z), decompress (-x) or dryrun (-r)"
+      not ctx->task_dryrun and not ctx->task_bottleneck_test) {
+    cerr << LOG_ERR
+         << "select compress (-z), decompress (-x), dryrun (-r), or "
+            "--bottleneck-test"
          << endl;
     to_abort = true;
   }
   if (false == psz_utils::check_dtype(ctx->dtype)) {
-    if (ctx->task_construct or ctx->task_dryrun) {
+    if (ctx->task_construct or ctx->task_dryrun or ctx->task_bottleneck_test) {
       std::cout << ctx->dtype << endl;
       cerr << LOG_ERR << "must specify data type" << endl;
       to_abort = true;
@@ -573,6 +582,23 @@ void pszctx_validate(pszctx* ctx)
          << endl;
     cerr << LOG_WARN << "will dryrun only" << endl << endl;
     ctx->task_reconstruct = false;
+  }
+  if (ctx->task_bottleneck_test) {
+    if (ctx->task_construct or ctx->task_reconstruct or ctx->task_dryrun) {
+      cerr << LOG_WARN
+           << "--bottleneck-test runs independently; ignoring normal pipeline "
+              "tasks"
+           << endl
+           << endl;
+    }
+    ctx->task_construct = false;
+    ctx->task_reconstruct = false;
+    ctx->task_dryrun = false;
+
+    if (ctx->bottleneck_repeats < 1) {
+      cerr << LOG_ERR << "--bottleneck-repeats must be positive" << endl;
+      to_abort = true;
+    }
   }
 
   if (to_abort) {

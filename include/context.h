@@ -27,6 +27,7 @@ struct psz_context {
   bool task_reconstruct{false};
   bool task_dryrun{false};
   bool task_experiment{false};
+  bool task_bottleneck_test{false};
 
   bool prep_binning{false};
   //   bool prep_logtransform{false};
@@ -78,6 +79,7 @@ struct psz_context {
   // codec config
   uint32_t codecs_in_use{0b01};
   int vle_sublen{512}, vle_pardeg{-1};
+  int bottleneck_repeats{10};
   INTERPOLATION_PARAMS intp_param;
 };
 

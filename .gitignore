@@ -3,6 +3,7 @@ bin/cusz
 buildcusz
 buildhipsz
 builddpsz
+testcases/
 
 *.sz
 *.szx
