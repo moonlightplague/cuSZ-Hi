@@ -16,7 +16,7 @@ Run the following command to compile and execute cuSZ-Hi
 
 ```
 git clone https://github.com/shixun404/cuSZ-Hi.git
-cmake -S cuSZ-Hi -B cuSZ-Hi/build \  
+cmake -S cuSZ-Hi -B cuSZ-Hi/build \
     -D PSZ_BACKEND=cuda \
     -D PSZ_BUILD_EXAMPLES=off \
     -D CMAKE_CUDA_ARCHITECTURES="80" \
